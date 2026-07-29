@@ -2,201 +2,201 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Siber Laboratuvar - Vampir Köylü</title>
-    <!-- Firebase Kütüphaneleri -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Siber Laboratuvar - 2D Multiplayer</title>
+    <!-- Firebase ve Phaser.js Oyun Motoru Kütüphaneleri -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { background-color: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, sans-serif; text-align: center; padding: 15px; margin: 0; }
-        .box { max-width: 450px; margin: 20px auto; background: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
-        input, button { width: 100%; padding: 14px; margin: 10px 0; border-radius: 8px; border: 1px solid #30363d; font-size: 16px; box-sizing: border-box; }
+        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: sans-serif; }
+        #game-container { width: 100vw; height: 100vh; display: block; }
+        #login-screen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(22, 27, 34, 0.95); padding: 25px; border-radius: 12px; border: 2px solid #30363d; text-align: center; color: white; z-index: 10; width: 85%; max-width: 350px; }
+        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #30363d; font-size: 16px; box-sizing: border-box; }
         input { background: #21262d; color: white; }
-        button { background: #238636; color: white; cursor: pointer; font-weight: bold; border: none; }
-        button:hover { background: #2ea043; }
-        .player-tag { display: inline-block; background: #21262d; padding: 8px 12px; margin: 5px; border-radius: 20px; border: 1px solid #30363d; font-size: 14px; }
-        .hidden { display: none; }
-        .role-alert { padding: 20px; border-radius: 8px; font-size: 26px; font-weight: bold; margin: 25px 0; text-transform: uppercase; letter-spacing: 2px; }
-        .vampire { background: #3c1212; color: #ff6b6b; border: 2px solid #f85149; box-shadow: 0 0 15px rgba(248,81,73,0.3); }
-        .villager { background: #123c1c; color: #56d364; border: 2px solid #3ec95b; box-shadow: 0 0 15px rgba(62,201,91,0.3); }
-        ul { text-align: left; background: #0d1117; padding: 15px 15px 15px 35px; border-radius: 8px; border: 1px solid #30363d; }
-        li { margin: 12px 0; font-size: 15px; color: #e6edf3; }
+        button { background: #238636; color: white; font-weight: bold; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2>🧬 SİBER LABORATUVAR</h2>
-    <p style="color: #8b949e; font-size: 14px;">Her oyuncu kendi telefonundan bağlanır. Roller ve görevler gizlice dağıtılır.</p>
-    <hr style="border-color: #30363d; margin: 20px 0;">
-
-    <!-- ODA GİRİŞ EKRANI -->
-    <div id="lobby-screen">
-        <input type="text" id="room-input" placeholder="Oda Kodu Yazın (Örn: 555)">
-        <input type="text" id="name-input" placeholder="Adınızı Yazın...">
-        <button onclick="joinRoom()">Odaya Katıl</button>
-    </div>
-
-    <!-- ODA BEKLEME EKRANI -->
-    <div id="waiting-screen" class="hidden">
-        <h3>Oda: <span id="room-id-text" style="color: #58a6ff;">-</span></h3>
-        <p style="color: #8b949e;">Katılan Siber Kimlikler (<span id="player-count">0</span>):</p>
-        <div id="player-list"></div>
-        <button id="start-btn" onclick="distributeRoles()" style="background: #1f6feb; margin-top: 25px;">Oyunu Başlat (Rolleri Dağıt)</button>
-    </div>
-
-    <!-- OYUN VE ROL GÖSTERİM EKRANI -->
-    <div id="game-screen" class="hidden">
-        <div id="role-box" class="role-alert"></div>
-        <h3>📋 Atanan Görevlerin:</h3>
-        <ul id="tasks-list"></ul>
-        <p style="color: #8b949e; font-size: 13px; margin-top: 25px;">💡 Görevlerini tamamla, vampiri bul veya sızdığın laboratuvarı sabote et!</p>
-        <button onclick="leaveRoom()" style="background: #21262d; border: 1px solid #30363d; margin-top: 20px;">Odadan Çık / Yeni Oyun</button>
-    </div>
+<div id="login-screen">
+    <h3 style="margin-top:0;">🧬 Siber Laboratuvar</h3>
+    <input type="text" id="room-input" placeholder="Oda Kodu (Örn: 99)">
+    <input type="text" id="name-input" placeholder="Adınız...">
+    <button onclick="startGame()">Oyuna Gir</button>
 </div>
 
+<div id="game-container"></div>
+
 <script>
-    // Sizin ekran görüntünüzdeki veritabanı linkine göre otomatik oluşturulan bağlantı ayarları
+    // Firebase Bağlantı Ayarları
     const firebaseConfig = {
-        apiKey: "AIzaSyBl" + "An_DummyKeyForSecurity_To_Be_Replaced_If_Needed", 
         authDomain: "vampir-koylu-1feeb.firebaseapp.com",
         databaseURL: "https://vampir-koylu-1feeb-default-rtdb.firebaseio.com",
         projectId: "vampir-koylu-1feeb",
         storageBucket: "vampir-koylu-1feeb.appspot.com"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let currentRoom = "";
-    let myPlayerId = "";
-    let roomRef = null;
+    let game, currentRoom, myPlayerId, roomRef;
+    let myPlayerName = "";
+    let localPlayer = null;
+    let remotePlayers = {};
+    let joystickData = { x: 0, y: 0, active: false };
 
-    const KÖYLÜ_GÖREVLERİ = [
-        "Ana bilgisayara siber virüs taraması yap",
-        "Kafeteryadaki hidrolik kolları kalibre et",
-        "Biyoloji laboratuvarındaki tüpleri sterilize et",
-        "Reaktör odasındaki plazma sızıntısını temizle",
-        "Güvenlik kameralarının veri akışını senkronize et"
-    ];
+    // Phaser 2D Oyun Motoru Ayarları
+    const config = {
+        type: Phaser.AUTO,
+        parent: 'game-container',
+        width: window.innerWidth,
+        height: window.innerHeight,
+        physics: { default: 'arcade', arcade: { gravity: { y: 0 } } },
+        scene: { preload: preload, create: create, update: update }
+    };
 
-    const VAMPİR_GÖREVLERİ = [
-        "Havalandırma kapaklarının vidalarını gevşet",
-        "Oksijen üretim ünitesine sahte yazılım yükle",
-        "Ana güç trafosuna kısa devre yaptır"
-    ];
-
-    function joinRoom() {
+    function startGame() {
         const room = document.getElementById('room-input').value.trim();
         const name = document.getElementById('name-input').value.trim();
-
-        if (!room || !name) {
-            alert("Lütfen tüm alanları doldurun!");
-            return;
-        }
+        if (!room || !name) { alert("Lütfen alanları doldurun!"); return; }
 
         currentRoom = room;
+        myPlayerName = name;
         roomRef = db.ref('rooms/' + currentRoom);
 
-        // Oyuncu kaydı oluştur
+        document.getElementById('login-screen').style.display = 'none';
+        
+        // Phaser oyun motorunu başlat
+        game = new Phaser.Game(config);
+    }
+
+    function preload() {
+        // Telefon ekranında çizeceğimiz basit harita karelerini ve karakter renklerini burada oluşturuyoruz
+        let canvas = this.textures.createCanvas('floor', 64, 64);
+        let ctx = canvas.context;
+        ctx.fillStyle = '#1f2937'; ctx.fillRect(0, 0, 64, 64);
+        ctx.strokeStyle = '#374151'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, 64, 64);
+        canvas.refresh();
+    }
+
+    function create() {
+        let scene = this;
+
+        // 1. Zemin Izgarası (Harita Temsili)
+        for (let x = -1000; x < 2000; x += 64) {
+            for (let y = -1000; y < 2000; y += 64) {
+                scene.add.image(x, y, 'floor').setOrigin(0);
+            }
+        }
+
+        // 2. Firebase'e Kendimizi Kaydetme
         const newPlayerRef = roomRef.child('players').push();
         myPlayerId = newPlayerRef.key;
+        
+        // Rastgele bir başlangıç pozisyonu verelim
+        let startX = 400 + Math.random() * 100;
+        let startY = 300 + Math.random() * 100;
 
-        newPlayerRef.set({
-            name: name,
-            role: "Bekleniyor...",
-            tasks: ["Oyun başladığında yüklenecek..."]
+        newPlayerRef.set({ name: myPlayerName, x: startX, y: startY });
+        // Sekme kapatılırsa oyuncuyu otomatik sil
+        newPlayerRef.onDisconnect().remove();
+
+        // 3. Kendi Karakterimizi Ekrana Çizme (Mavi Yuvarlak)
+        localPlayer = scene.add.circle(startX, startY, 20, 0x00a8ff);
+        scene.physics.add.existing(localPlayer);
+        localPlayer.body.setCollideWorldBounds(false);
+
+        // İsmini kafasının üstüne yazalım
+        localPlayer.nameText = scene.add.text(startX, startY - 35, myPlayerName, { fontSize: '14px', fill: '#fff' }).setOrigin(0.5);
+
+        // Kamerayı kendimize sabitleyelim
+        scene.cameras.main.startFollow(localPlayer);
+
+        // 4. Diğer Oyuncuları Canlı Takip Etme
+        roomRef.child('players').on('child_added', (snapshot) => {
+            if (snapshot.key === myPlayerId) return;
+            let data = snapshot.val();
+            
+            // Diğer oyuncuları Yeşil Yuvarlak yapalım
+            let p = scene.add.circle(data.x, data.y, 20, 0x4cd137);
+            p.nameText = scene.add.text(data.x, data.y - 35, data.name, { fontSize: '14px', fill: '#fff' }).setOrigin(0.5);
+            
+            remotePlayers[snapshot.key] = p;
         });
 
-        // Sayfa geçişleri
-        document.getElementById('lobby-screen').classList.add('hidden');
-        document.getElementById('waiting-screen').classList.remove('hidden');
-        document.getElementById('room-id-text').innerText = currentRoom;
-
-        // Canlı Oyuncu Listesi Takibi
-        roomRef.child('players').on('value', (snapshot) => {
-            const players = snapshot.val();
-            const listDiv = document.getElementById('player-list');
-            listDiv.innerHTML = "";
-            let count = 0;
-
-            if (players) {
-                Object.keys(players).forEach(key => {
-                    count++;
-                    let p = players[key];
-                    listDiv.innerHTML += `<span class="player-tag">🤖 ${p.name}</span>`;
-                });
+        roomRef.child('players').on('child_changed', (snapshot) => {
+            if (snapshot.key === myPlayerId) return;
+            let data = snapshot.val();
+            if (remotePlayers[snapshot.key]) {
+                // Diğer oyuncunun yeni konumunu ekranda güncelle
+                remotePlayers[snapshot.key].x = data.x;
+                remotePlayers[snapshot.key].y = data.y;
+                remotePlayers[snapshot.key].nameText.x = data.x;
+                remotePlayers[snapshot.key].nameText.y = data.y - 35;
             }
-            document.getElementById('player-count').innerText = count;
         });
 
-        // Canlı Oyun Başlama Kontrolü (Diğer oyuncular için otomatik tetiklenir)
-        roomRef.child('status').on('value', (snapshot) => {
-            if (snapshot.val() === 'started') {
-                loadGameScreen();
+        roomRef.child('players').on('child_removed', (snapshot) => {
+            if (remotePlayers[snapshot.key]) {
+                remotePlayers[snapshot.key].nameText.destroy();
+                remotePlayers[snapshot.key].destroy();
+                delete remotePlayers[snapshot.key];
             }
+        });
+
+        // 5. Mobil Sanal Joystick Kapsama Alanı
+        let joyBase = scene.add.circle(100, window.innerHeight - 100, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(100);
+        let joyThumb = scene.add.circle(100, window.innerHeight - 100, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(101);
+
+        scene.input.on('pointerdown', (pointer) => {
+            if (pointer.x < window.innerWidth / 2 && pointer.y > window.innerHeight / 2) {
+                joystickData.active = true;
+                joyBase.x = pointer.x; joyBase.y = pointer.y;
+                joyThumb.x = pointer.x; joyThumb.y = pointer.y;
+            }
+        });
+
+        scene.input.on('pointermove', (pointer) => {
+            if (!joystickData.active) return;
+            let dist = Phaser.Math.Distance.Between(joyBase.x, joyBase.y, pointer.x, pointer.y);
+            let angle = Phaser.Math.Angle.Between(joyBase.x, joyBase.y, pointer.x, pointer.y);
+            let maxDist = 50;
+
+            if (dist > maxDist) dist = maxDist;
+            joyThumb.x = joyBase.x + Math.cos(angle) * dist;
+            joyThumb.y = joyBase.y + Math.sin(angle) * dist;
+
+            joystickData.x = Math.cos(angle) * (dist / maxDist);
+            joystickData.y = Math.sin(angle) * (dist / maxDist);
+        });
+
+        scene.input.on('pointerup', () => {
+            joystickData.active = false;
+            joystickData.x = 0; joystickData.y = 0;
+            joyBase.x = 100; joyBase.y = window.innerHeight - 100;
+            joyThumb.x = 100; joyThumb.y = window.innerHeight - 100;
         });
     }
 
-    function distributeRoles() {
-        roomRef.child('players').once('value', (snapshot) => {
-            const players = snapshot.val();
-            if (!players || Object.keys(players).length < 2) {
-                alert("Oyunu başlatmak için en az 2 oyuncu olmalıdır!");
-                return;
-            }
+    function update() {
+        if (!localPlayer || !localPlayer.body) return;
 
-            const keys = Object.keys(players);
-            // Rastgele 1 kişiyi siber vampir seç
-            const randomVampireKey = keys[Math.floor(Math.random() * keys.length)];
+        // Oyuncu hızı
+        let speed = 200;
+        localPlayer.body.setVelocityX(joystickData.x * speed);
+        localPlayer.body.setVelocityY(joystickData.y * speed);
+        
+        localPlayer.nameText.x = localPlayer.x;
+        localPlayer.nameText.y = localPlayer.y - 35;
 
-            keys.forEach(key => {
-                let assignedRole = "Siber Köylü";
-                let assignedTasks = [...KÖYLÜ_GÖREVLERİ].sort(() => 0.5 - Math.random()).slice(0, 3);
-
-                if (key === randomVampireKey) {
-                    assignedRole = "Siber Vampir";
-                    assignedTasks = [...VAMPİR_GÖREVLERİ].sort(() => 0.5 - Math.random()).slice(0, 2);
-                }
-
-                roomRef.child('players/' + key).update({
-                    role: assignedRole,
-                    tasks: assignedTasks
-                });
+        // Pozisyonumuz değiştiyse Firebase'e gönder (Saliselik güncelleme)
+        if (joystickData.active) {
+            db.ref('rooms/' + currentRoom + '/players/' + myPlayerId).update({
+                x: localPlayer.x,
+                y: localPlayer.y
             });
-
-            // Oyun durumunu başlatıldı yap
-            roomRef.update({ status: 'started' });
-        });
-    }
-
-    function loadGameScreen() {
-        roomRef.child('players/' + myPlayerId).once('value', (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-
-            document.getElementById('waiting-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-
-            const roleBox = document.getElementById('role-box');
-            roleBox.innerText = data.role;
-            roleBox.className = "role-alert " + (data.role === "Siber Vampir" ? "vampire" : "villager");
-
-            const tasksList = document.getElementById('tasks-list');
-            tasksList.innerHTML = "";
-            data.tasks.forEach(task => {
-                tasksList.innerHTML += `<li>🔲 ${task}</li>`;
-            });
-        });
-    }
-
-    function leaveRoom() {
-        if (roomRef && myPlayerId) {
-            roomRef.child('players/' + myPlayerId).remove();
         }
-        location.reload();
     }
 </script>
 </body>
 </html>
-
