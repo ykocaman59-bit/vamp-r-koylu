@@ -3,33 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Siber Laboratuvar - 2D Multiplayer</title>
-    <!-- Firebase ve Phaser.js Oyun Motoru Kütüphaneleri -->
+    <title>Vampir Köylü - WePlay Edition</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background-color: #000; overflow: hidden; font-family: sans-serif; }
-        #game-container { width: 100vw; height: 100vh; display: block; }
-        #login-screen { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(22, 27, 34, 0.95); padding: 25px; border-radius: 12px; border: 2px solid #30363d; text-align: center; color: white; z-index: 10; width: 85%; max-width: 350px; }
-        input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 6px; border: 1px solid #30363d; font-size: 16px; box-sizing: border-box; }
-        input { background: #21262d; color: white; }
-        button { background: #238636; color: white; font-weight: bold; border: none; cursor: pointer; }
+        body { margin: 0; padding: 0; background-color: #0b0e14; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; user-select: none; }
+        #game-container { width: 100vw; height: 100vh; display: none; }
+        
+        /* WePlay Tarzı Ana Menü */
+        .menu-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: linear-gradient(135deg, #171926 0%, #0b0d17 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; padding: 20px; box-sizing: border-box; }
+        .menu-card { background: rgba(30, 33, 50, 0.9); border: 2px solid #3a3f58; border-radius: 20px; padding: 30px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { margin: 0 0 10px 0; font-size: 28px; color: #ff4757; text-shadow: 0 2px 10px rgba(255, 71, 87, 0.4); }
+        h2 { font-size: 16px; color: #a4b0be; margin-bottom: 25px; font-weight: 400; }
+        
+        input, select { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #3a3f58; font-size: 16px; box-sizing: border-box; background: #0f111a; color: white; outline: none; }
+        input:focus { border-color: #ff4757; }
+        
+        .btn { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; font-size: 18px; font-weight: bold; border: none; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px; }
+        .btn-fast { background: linear-gradient(90deg, #ff4757, #ff6b81); color: white; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4); }
+        .btn-custom { background: linear-gradient(90deg, #2ed573, #7bed9f); color: white; box-shadow: 0 5px 15px rgba(46, 213, 115, 0.4); }
+        .btn:active { transform: scale(0.98); }
+
+        /* Eşleşme Odası Bekleme Ekranı */
+        #matchmaking-screen { display: none; }
+        .loader { width: 50px; height: 50px; border: 5px solid #3a3f58; border-top: 5px solid #ff4757; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .player-count { font-size: 24px; font-weight: bold; color: #2ed573; margin: 15px 0; }
     </style>
 </head>
 <body>
 
-<div id="login-screen">
-    <h3 style="margin-top:0;">🧬 Siber Laboratuvar</h3>
-    <input type="text" id="room-input" placeholder="Oda Kodu (Örn: 99)">
-    <input type="text" id="name-input" placeholder="Adınız...">
-    <button onclick="startGame()">Oyuna Gir</button>
+<!-- ANA MENÜ -->
+<div id="main-menu" class="menu-screen">
+    <div class="menu-card">
+        <h1>VAMPİR KÖYLÜ</h1>
+        <h2>WePlay Tarzı Canlı Eşleşme Odası</h2>
+        
+        <input type="text" id="name-input" placeholder="Oyuncu Adınızı Yazın...">
+        
+        <select id="char-input">
+            <option value="0xff4757">🔴 Kırmızı Ajan (Vampir Adayı)</option>
+            <option value="0x2ed573">🟢 Yeşil Dedektif</option>
+            <option value="0x1e90ff">🔵 Mavi Muhtar</option>
+            <option value="0xffa500">🟠 Turuncu Köylü</option>
+            <option value="0x9b59b6">🟣 Mor Büyücü</option>
+        </select>
+
+        <button class="btn btn-fast" onclick="startMatchmaking()">⚡ HIZLI OYUN (Eşleş)</button>
+        <button class="btn btn-custom" onclick="showCustomRoom()">🏠 Arkadaşınla Oyna</button>
+    </div>
 </div>
 
+<!-- EŞLEŞME ODASI (LOBİ) -->
+<div id="matchmaking-screen" class="menu-screen">
+    <div class="menu-card">
+        <h1>Oda Aranıyor...</h1>
+        <div class="loader"></div>
+        <p id="match-status">Uygun oyuncular aranıyor, lobi kuruluyor.</p>
+        <div class="player-count"><span id="ready-count">1</span> / 4</div>
+        <p style="color: #a4b0be; font-size: 14px;">Minimum 4 oyuncu ulaştığında oyun otomatik başlayacaktır.</p>
+        <button class="btn" style="background: #3a3f58; color: white;" onclick="cancelMatchmaking()">İptal Et</button>
+    </div>
+</div>
+
+<!-- OYUN ALANI -->
 <div id="game-container"></div>
 
 <script>
-    // Firebase Bağlantı Ayarları
+    // Firebase Yapılandırması
     const firebaseConfig = {
         authDomain: "vampir-koylu-1feeb.firebaseapp.com",
         databaseURL: "https://vampir-koylu-1feeb-default-rtdb.firebaseio.com",
@@ -39,13 +81,78 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let game, currentRoom, myPlayerId, roomRef;
-    let myPlayerName = "";
+    let game, currentRoom, myPlayerId, roomRef, matchRef;
+    let myName = "";
+    let myColor = "";
     let localPlayer = null;
     let remotePlayers = {};
     let joystickData = { x: 0, y: 0, active: false };
+    const REQUIRED_PLAYERS = 4; // Testlerin kolay olması için 4 oyuncu sınırı koyduk
 
-    // Phaser 2D Oyun Motoru Ayarları
+    function startMatchmaking() {
+        myName = document.getElementById('name-input').value.trim();
+        myColor = document.getElementById('char-input').value;
+        if (!myName) { alert("Lütfen adınızı girin!"); return; }
+
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('matchmaking-screen').style.display = 'flex';
+
+        // Hızlı Eşleşme Havuzuna Gir
+        matchRef = db.ref('matchmaking_pool').push();
+        matchRef.set({ name: myName, color: myColor });
+        matchRef.onDisconnect().remove();
+
+        // Havuzu Canlı Dinle
+        db.ref('matchmaking_pool').on('value', (snapshot) => {
+            let pool = snapshot.val() || {};
+            let keys = Object.keys(pool);
+            let count = keys.length;
+            
+            document.getElementById('ready-count').innerText = count;
+
+            // Eğer yeterli oyuncu sayısına ulaşıldıysa ilk oyuncu odayı kurar, diğerleri katılır
+            if (count >= REQUIRED_PLAYERS) {
+                // Herkes için sabit bir ortak oda adı belirleyelim (Örn: Havuzdaki ilk oyuncunun ID'si)
+                let targetRoom = "match_" + keys[0];
+                
+                // Havuzdan kendimizi silip oyuna bağlanalım
+                matchRef.remove();
+                db.ref('matchmaking_pool').off();
+                
+                enterGameRoom(targetRoom);
+            }
+        });
+    }
+
+    function cancelMatchmaking() {
+        if (matchRef) matchRef.remove();
+        db.ref('matchmaking_pool').off();
+        document.getElementById('matchmaking-screen').style.display = 'none';
+        document.getElementById('main-menu').style.display = 'flex';
+    }
+
+    function showCustomRoom() {
+        let roomCode = prompt("Kurmak veya katılmak istediğiniz oda kodunu girin:");
+        myName = document.getElementById('name-input').value.trim();
+        myColor = document.getElementById('char-input').value;
+        if (!roomCode || !myName) { alert("Oda kodu ve isim zorunludur!"); return; }
+        
+        document.getElementById('main-menu').style.display = 'none';
+        enterGameRoom("custom_" + roomCode);
+    }
+
+    function enterGameRoom(roomName) {
+        currentRoom = roomName;
+        roomRef = db.ref('rooms/' + currentRoom);
+        
+        document.getElementById('matchmaking-screen').style.display = 'none';
+        document.getElementById('game-container').style.display = 'block';
+
+        // Phaser Motorunu Ateşle
+        game = new Phaser.Game(config);
+    }
+
+    // PHASER OYUN MOTORU KODLARI
     const config = {
         type: Phaser.AUTO,
         parent: 'game-container',
@@ -55,71 +162,54 @@
         scene: { preload: preload, create: create, update: update }
     };
 
-    function startGame() {
-        const room = document.getElementById('room-input').value.trim();
-        const name = document.getElementById('name-input').value.trim();
-        if (!room || !name) { alert("Lütfen alanları doldurun!"); return; }
-
-        currentRoom = room;
-        myPlayerName = name;
-        roomRef = db.ref('rooms/' + currentRoom);
-
-        document.getElementById('login-screen').style.display = 'none';
-        
-        // Phaser oyun motorunu başlat
-        game = new Phaser.Game(config);
-    }
-
     function preload() {
-        // Telefon ekranında çizeceğimiz basit harita karelerini ve karakter renklerini burada oluşturuyoruz
+        // Zemin çizimi
         let canvas = this.textures.createCanvas('floor', 64, 64);
         let ctx = canvas.context;
-        ctx.fillStyle = '#1f2937'; ctx.fillRect(0, 0, 64, 64);
-        ctx.strokeStyle = '#374151'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, 64, 64);
+        ctx.fillStyle = '#1e2236'; ctx.fillRect(0, 0, 64, 64);
+        ctx.strokeStyle = '#2d3250'; ctx.lineWidth = 1; ctx.strokeRect(0, 0, 64, 64);
         canvas.refresh();
     }
 
     function create() {
         let scene = this;
 
-        // 1. Zemin Izgarası (Harita Temsili)
-        for (let x = -1000; x < 2000; x += 64) {
-            for (let y = -1000; y < 2000; y += 64) {
+        // Haritayı çiz
+        for (let x = -500; x < 1500; x += 64) {
+            for (let y = -500; y < 1500; y += 64) {
                 scene.add.image(x, y, 'floor').setOrigin(0);
             }
         }
 
-        // 2. Firebase'e Kendimizi Kaydetme
-        const newPlayerRef = roomRef.child('players').push();
-        myPlayerId = newPlayerRef.key;
-        
-        // Rastgele bir başlangıç pozisyonu verelim
-        let startX = 400 + Math.random() * 100;
-        let startY = 300 + Math.random() * 100;
+        // Kendimizi odaya kaydetme
+        const pRef = roomRef.child('players').push();
+        myPlayerId = pRef.key;
+        let startX = 300 + Math.random() * 200;
+        let startY = 300 + Math.random() * 200;
 
-        newPlayerRef.set({ name: myPlayerName, x: startX, y: startY });
-        // Sekme kapatılırsa oyuncuyu otomatik sil
-        newPlayerRef.onDisconnect().remove();
+        pRef.set({ name: myName, color: myColor, x: startX, y: startY });
+        pRef.onDisconnect().remove();
 
-        // 3. Kendi Karakterimizi Ekrana Çizme (Mavi Yuvarlak)
-        localPlayer = scene.add.circle(startX, startY, 20, 0x00a8ff);
+        // Kendi karakterimiz (Seçtiğimiz renkte WePlay Ajanı)
+        localPlayer = scene.add.circle(startX, startY, 22, parseInt(myColor));
         scene.physics.add.existing(localPlayer);
-        localPlayer.body.setCollideWorldBounds(false);
+        
+        // Karakterin şık WePlay vizör çizgisi (Öne baktığını anlamak için)
+        let visor = scene.add.rectangle(startX + 10, startY, 15, 8, 0xffffff);
+        localPlayer.visor = visor;
 
-        // İsmini kafasının üstüne yazalım
-        localPlayer.nameText = scene.add.text(startX, startY - 35, myPlayerName, { fontSize: '14px', fill: '#fff' }).setOrigin(0.5);
+        localPlayer.nameText = scene.add.text(startX, startY - 38, myName, { fontSize: '14px', fontStyle: 'bold', fill: '#ffffff' }).setOrigin(0.5);
 
-        // Kamerayı kendimize sabitleyelim
         scene.cameras.main.startFollow(localPlayer);
 
-        // 4. Diğer Oyuncuları Canlı Takip Etme
+        // Odaya giren diğer karakterleri canlı eşleme
         roomRef.child('players').on('child_added', (snapshot) => {
             if (snapshot.key === myPlayerId) return;
             let data = snapshot.val();
             
-            // Diğer oyuncuları Yeşil Yuvarlak yapalım
-            let p = scene.add.circle(data.x, data.y, 20, 0x4cd137);
-            p.nameText = scene.add.text(data.x, data.y - 35, data.name, { fontSize: '14px', fill: '#fff' }).setOrigin(0.5);
+            let p = scene.add.circle(data.x, data.y, 22, parseInt(data.color));
+            p.visor = scene.add.rectangle(data.x + 10, data.y, 15, 8, 0xffffff);
+            p.nameText = scene.add.text(data.x, data.y - 38, data.name, { fontSize: '14px', fill: '#a4b0be' }).setOrigin(0.5);
             
             remotePlayers[snapshot.key] = p;
         });
@@ -128,25 +218,26 @@
             if (snapshot.key === myPlayerId) return;
             let data = snapshot.val();
             if (remotePlayers[snapshot.key]) {
-                // Diğer oyuncunun yeni konumunu ekranda güncelle
-                remotePlayers[snapshot.key].x = data.x;
-                remotePlayers[snapshot.key].y = data.y;
-                remotePlayers[snapshot.key].nameText.x = data.x;
-                remotePlayers[snapshot.key].nameText.y = data.y - 35;
+                let p = remotePlayers[snapshot.key];
+                p.x = data.x; p.y = data.y;
+                p.visor.x = data.x + (data.vx ? data.vx * 10 : 10);
+                p.visor.y = data.y;
+                p.nameText.x = data.x; p.nameText.y = data.y - 38;
             }
         });
 
         roomRef.child('players').on('child_removed', (snapshot) => {
             if (remotePlayers[snapshot.key]) {
+                remotePlayers[snapshot.key].visor.destroy();
                 remotePlayers[snapshot.key].nameText.destroy();
                 remotePlayers[snapshot.key].destroy();
                 delete remotePlayers[snapshot.key];
             }
         });
 
-        // 5. Mobil Sanal Joystick Kapsama Alanı
-        let joyBase = scene.add.circle(100, window.innerHeight - 100, 60, 0xffffff, 0.2).setScrollFactor(0).setDepth(100);
-        let joyThumb = scene.add.circle(100, window.innerHeight - 100, 30, 0xffffff, 0.5).setScrollFactor(0).setDepth(101);
+        // Mobil Joystick Sistemi
+        let joyBase = scene.add.circle(100, window.innerHeight - 100, 55, 0xffffff, 0.15).setScrollFactor(0).setDepth(100);
+        let joyThumb = scene.add.circle(100, window.innerHeight - 100, 28, 0xffffff, 0.4).setScrollFactor(0).setDepth(101);
 
         scene.input.on('pointerdown', (pointer) => {
             if (pointer.x < window.innerWidth / 2 && pointer.y > window.innerHeight / 2) {
@@ -160,7 +251,7 @@
             if (!joystickData.active) return;
             let dist = Phaser.Math.Distance.Between(joyBase.x, joyBase.y, pointer.x, pointer.y);
             let angle = Phaser.Math.Angle.Between(joyBase.x, joyBase.y, pointer.x, pointer.y);
-            let maxDist = 50;
+            let maxDist = 45;
 
             if (dist > maxDist) dist = maxDist;
             joyThumb.x = joyBase.x + Math.cos(angle) * dist;
@@ -181,19 +272,25 @@
     function update() {
         if (!localPlayer || !localPlayer.body) return;
 
-        // Oyuncu hızı
-        let speed = 200;
+        let speed = 220;
         localPlayer.body.setVelocityX(joystickData.x * speed);
         localPlayer.body.setVelocityY(joystickData.y * speed);
         
+        // Vizör yönünü ayarla
+        if (joystickData.x !== 0) {
+            localPlayer.visor.x = localPlayer.x + (joystickData.x > 0 ? 10 : -10);
+        } else {
+            localPlayer.visor.x = localPlayer.x + 10;
+        }
+        localPlayer.visor.y = localPlayer.y;
         localPlayer.nameText.x = localPlayer.x;
-        localPlayer.nameText.y = localPlayer.y - 35;
+        localPlayer.nameText.y = localPlayer.y - 38;
 
-        // Pozisyonumuz değiştiyse Firebase'e gönder (Saliselik güncelleme)
         if (joystickData.active) {
             db.ref('rooms/' + currentRoom + '/players/' + myPlayerId).update({
                 x: localPlayer.x,
-                y: localPlayer.y
+                y: localPlayer.y,
+                vx: joystickData.x > 0 ? 1 : -1
             });
         }
     }
