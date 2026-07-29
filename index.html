@@ -1,340 +1,90 @@
+<!--
+CandyCrush
+Your Name: Edward Hughes
+Collaborators: nobody
+-->
 <!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>WePlay Vampir Katil - Profesyonel Mod</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <style>
-        body { margin: 0; padding: 0; background-color: #0b0e14; font-family: 'Segoe UI', sans-serif; color: white; user-select: none; overflow: hidden; }
-        .screen { width: 100vw; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 15px; }
-        
-        .card { background: #151a23; border: 2px solid #222b3b; border-radius: 20px; padding: 25px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
-        h1 { margin: 0 0 5px 0; font-size: 24px; color: #ff4757; }
-        input { width: 100%; padding: 14px; margin: 10px 0; border-radius: 10px; border: 1px solid #222b3b; font-size: 16px; box-sizing: border-box; background: #0b0e14; color: white; outline: none; }
-        .btn { width: 100%; padding: 14px; margin: 6px 0; border-radius: 10px; font-size: 15px; font-weight: bold; border: none; cursor: pointer; text-transform: uppercase; }
-        .btn-main { background: linear-gradient(90deg, #ff4757, #ff6b81); color: white; }
-        .btn-sec { background: #222b3b; color: #a4b0be; }
+<html>
+<!--
+/* Copyright (c) 2017 MIT 6.813/6.831 course staff, all rights reserved.
+ * Redistribution of original or derived work requires permission of course staff.
+ */
+-->
 
-        /* Oyun Alanı */
-        #game-screen { display: none; justify-content: flex-start; padding-top: 10px; }
-        .top-bar { width: 100%; display: flex; justify-content: space-between; align-items: center; background: #151a23; padding: 10px 15px; border-radius: 10px; border: 1px solid #222b3b; margin-bottom: 10px; font-size: 13px; }
-        
-        /* Oyuncu Listesi / Yakınlık Alanı */
-        .player-list { width: 100%; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-        .player-row { background: #151a23; border: 2px solid #222b3b; border-radius: 12px; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s; }
-        .player-row.dead { opacity: 0.4; filter: grayscale(100%); }
-        .p-info { display: flex; align-items: center; gap: 10px; }
-        .p-avatar { width: 35px; height: 35px; background: #2f3542; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
-        
-        /* Aksiyon Paneli (Öldür, Rapor Et, Konuş) */
-        .action-dock { width: 100%; background: #151a23; border-radius: 15px; padding: 12px; border: 1px solid #222b3b; box-sizing: border-box; text-align: center; }
-        
-        /* Toplantı / Rapor Ekranı (Overlay) */
-        .meeting-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(5, 7, 11, 0.97); z-index: 100; flex-direction: column; padding: 20px; box-sizing: border-box; align-items: center; justify-content: space-between; }
-        .meeting-box { width: 100%; max-width: 400px; background: #151a23; border: 2px solid #ff4757; border-radius: 15px; padding: 15px; text-align: center; }
-    </style>
-</head>
-<body>
+        <head>
+                <meta charset="utf-8">
+                <title>Candy Crush</title>
 
-<!-- GİRİŞ -->
-<div id="lobby-screen" class="screen">
-    <div class="card">
-        <h1>VAMPİR KATİL</h1>
-        <p style="color:#747d8c; font-size:13px; margin-bottom:15px;">Gerçek Zamanlı Sosyal Çıkarım Modu</p>
-        <input type="text" id="name-input" placeholder="Adınız...">
-        <button class="btn btn-main" onclick="joinQueue()">OYUNA GİR</button>
-    </div>
-</div>
+                <!-- Load style sheets -->
+                <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/css/bootstrap.css">
 
-<!-- BEKLEME -->
-<div id="queue-screen" class="screen" style="display:none;">
-    <div class="card">
-        <h2 style="color:#2ed573;">Oda Aranıyor...</h2>
-        <div id="queue-count" style="font-size: 40px; font-weight:bold; margin: 15px 0;">1</div>
-        <p style="color:#747d8c; font-size: 13px;">Yeterli oyuncuya ulaşıldığında roller otomatik dağıtılacak.</p>
-        <button class="btn btn-sec" onclick="leaveQueue()">İPTAL</button>
-    </div>
-</div>
+                <link rel="stylesheet" href="mainLayout.css">
 
-<!-- OYUN EKRANI -->
-<div id="game-screen" class="screen">
-    <div class="top-bar">
-        <div>Rol: <span id="my-role-text" style="color:#2ed573; font-weight:bold;">-</span></div>
-        <div id="game-status-text" style="color:#ffa502; font-weight:bold;">Serbest Gezinti</div>
-    </div>
+                <!-- Use mobile-aware viewport -->
+                <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <div class="player-list" id="player-list-container"></div>
+                <!-- Load any supplemental Javascript libraries here -->
+                <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/seedrandom/2.4.2/seedrandom.js"></script>
+                <script src="candy.js"></script>
+                <script src="board.js"></script>
+                <script src="rules.js"></script>
+                <script src="handler.js"></script>
+        </head>
 
-    <div class="action-dock">
-        <div id="role-warning" style="font-size: 12px; color: #747d8c; margin-bottom: 8px;">Hayattasın. Çevrendeki oyuncuları gözlemle.</div>
-        <div id="main-buttons"></div>
-    </div>
-</div>
+        <body>
+                <div class="container">
+                        <div class="row">
+                                <div class="col-md-3" id="firstColumn">
+                                        <h1 id="gameTitle">Candy Crush</h1>
+                                        <label id="scoreLabel">0 points</label><br/>
+                                        <input class="btn btn-default" type="button" id="newGame" value="New Game"><br/>
+                                        <input class="btn btn-default" type="button" id="showMove" value="Show Move">
+                                </div>
 
-<!-- TOPLANTI / RAPOR EKRANI -->
-<div id="meeting-screen" class="meeting-overlay">
-    <div class="meeting-box">
-        <h2 id="meeting-title" style="color:#ff4757; margin:0 0 10px 0;">🚨 CESET BULUNDU!</h2>
-        <p id="meeting-desc" style="font-size:14px; color:#f1f2f6; margin-bottom:15px;"></p>
-        <div id="speaker-status" style="background:#0b0e14; padding: 10px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; color:#2ed573;">Söz Hakkı: Kimde?</div>
-        <div id="meeting-timer" style="font-size: 22px; font-weight: bold; color: #ffa502;">30</div>
-    </div>
-    
-    <div style="width:100%; max-width:400px;" id="meeting-actions">
-        <!-- Konuşmayı bitir veya Oy ver butonları buraya gelecek -->
-    </div>
-</div>
+                                <div class="col-md-6" id="mainColumn">
+                                        <div id="cover"></div>
+                                        <div id="gameBoard"></div>
+                                        <canvas id="canvas" width="320" height="320">
+                                                <p>Canvas not supported on your browser.</p>
+                                        </canvas>
+                                </div>
+                                <div class="col-md-3" id="lastColumn"></div>
+                                <!--
+                                <div class="col-md-3" id="lastColumn">
+                                        <div class="col-md-12">
+                                                <form action="">
+                                                        Move: <input type="text" id="moveInput" maxlength="3" value="" oninput="CheckInput()">
+                                                </form>
+                                        </div>
+                                        <div class="col-md-12">
+                                                <table id="arrowContainer">
+                                                        <tr>
+                                                                <td></td>
+                                                                <td><input class="btn btn-default arrow" type="button" id="up" value="&uarr;"></td>
+                                                                <td></td>
+                                                        </tr>
+                                                        <tr>
+                                                                <td><input class="btn btn-default arrow" type="button" id="left" value="&larr;"></td>
+                                                                <td></td>
+                                                                <td><input class="btn btn-default arrow" type="button" id="right" value="&rarr;"></td>
+                                                        </tr>
+                                                        <tr>
+                                                                <td></td>
+                                                                <td><input class="btn btn-default arrow" type="button" id="down" value="&darr;"></td>
+                                                                <td></td>
+                                                        </tr>
+                                                </table>
+                                        </div>
+                                        <div class="col-md-12">
+                                                <input class="btn btn-default" type="button" id="crushOnce" value="Crush Once (spacebar)">
+                                        </div>
+                                </div>
+                                -->
 
-<script>
-    const firebaseConfig = {
-        authDomain: "vampir-koylu-1feeb.firebaseapp.com",
-        databaseURL: "https://vampir-koylu-1feeb-default-rtdb.firebaseio.com",
-        projectId: "vampir-koylu-1feeb",
-        storageBucket: "vampir-koylu-1feeb.appspot.com"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+                        </div> <!-- class="row" -->
+                </div> <!-- class="container" -->
 
-    let myName = "", myId = "", currentRoom = "", myRole = "", isDead = false;
-    let poolRef = null, roomRef = null;
-    let roomData = {};
+        </body>
 
-    function joinQueue() {
-        myName = document.getElementById('name-input').value.trim();
-        if (!myName) return alert("İsim yazmalısın.");
-
-        document.getElementById('lobby-screen').style.display = 'none';
-        document.getElementById('queue-screen').style.display = 'flex';
-
-        poolRef = db.ref('realtime_pool').push();
-        poolRef.set({ name: myName });
-        poolRef.onDisconnect().remove();
-        myId = poolRef.key;
-
-        db.ref('realtime_pool').on('value', snap => {
-            let pool = snap.val() || {};
-            let keys = Object.keys(pool);
-            document.getElementById('queue-count').innerText = keys.length;
-
-            if (keys.length >= 3) { // Test için 3 kişi, gerçekte 5-10 yapılabilir
-                let rName = "rt_room_" + keys[0];
-                poolRef.remove();
-                db.ref('realtime_pool').off();
-                setupRoom(rName);
-            }
-        });
-    }
-
-    function leaveQueue() {
-        if (poolRef) poolRef.remove();
-        db.ref('realtime_pool').off();
-        document.getElementById('queue-screen').style.display = 'none';
-        document.getElementById('lobby-screen').style.display = 'flex';
-    }
-
-    function setupRoom(rName) {
-        currentRoom = rName;
-        document.getElementById('queue-screen').style.display = 'none';
-        document.getElementById('game-screen').style.display = 'flex';
-
-        roomRef = db.ref('rooms/' + currentRoom);
-        roomRef.child('players/' + myId).set({ name: myName, role: "Bekliyor", alive: true, number: 0 });
-        roomRef.child('players/' + myId).onDisconnect().remove();
-
-        roomRef.on('value', snapshot => {
-            roomData = snapshot.val() || {};
-            renderGame();
-        });
-
-        // Kurucu rol dağıtsın
-        setTimeout(() => {
-            roomRef.child('players').once('value', s => {
-                let pList = s.val() || {};
-                if (Object.keys(pList)[0] === myId && !roomData.started) {
-                    startTheGame(pList);
-                }
-            });
-        }, 1000);
-    }
-
-    function startTheGame(pList) {
-        let keys = Object.keys(pList);
-        let total = keys.length;
-        let vCount = total >= 8 ? 2 : 1; // 8+ kişide 2 vampir, azsa 1 vampir
-        
-        let shuffled = [...keys].sort(() => Math.random() - 0.5);
-        let updates = { started: true, phase: "playing" };
-        
-        shuffled.forEach((id, index) => {
-            let role = index < vCount ? "Vampir" : "Köylü";
-            updates[`players/${id}/role`] = role;
-            updates[`players/${id}/number`] = index + 1;
-            updates[`players/${id}/alive`] = true;
-        });
-        roomRef.update(updates);
-    }
-
-    function renderGame() {
-        let players = roomData.players || {};
-        let myData = players[myId] || {};
-        myRole = myData.role || "Köylü";
-        isDead = myData.alive === false;
-
-        document.getElementById('my-role-text.innerText = myRole + (isDead ? " (ÖLÜ)" : "")';
-        document.getElementById('my-role-text').style.color = myRole === "Vampir" ? "#ff4757" : "#2ed573";
-
-        // Oyuncu listesini çiz (Numara ve Durumlarıyla)
-        let listContainer = document.getElementById('player-list-container');
-        listContainer.innerHTML = "";
-
-        let aliveCount = 0;
-        Object.keys(players).forEach(id => {
-            let p = players[id];
-            if (p.alive) aliveCount++;
-
-            let row = document.createElement('div');
-            row.className = `player-row ${!p.alive ? 'dead' : ''}`;
-            
-            let actionBtnHtml = "";
-            if (!isDead && id !== myId) {
-                if (myRole === "Vampir" && p.alive && p.role !== "Vampir") {
-                    actionBtnHtml = `<button class="btn btn-main" style="width:auto; padding:6px 12px; font-size:12px;" onclick="killPlayer('${id}')">ÖLDÜR</button>`;
-                } else if (p.alive) {
-                    actionBtnHtml = `<button class="btn btn-sec" style="width:auto; padding:6px 12px; font-size:12px; background:#ffa502; color:black;" onclick="reportBody('${id}', '${p.name}', '${p.number}')">RAPOR ET</button>`;
-                }
-            }
-
-            row.innerHTML = `
-                <div class="p-info">
-                    <div class="p-avatar">${p.number || '?'}</div>
-                    <div>
-                        <div style="font-weight:bold; font-size:14px;">${p.name}</div>
-                        <div style="font-size:11px; color:#747d8c;">${p.alive ? 'Hayatta' : 'Öldürüldü'}</div>
-                    </div>
-                </div>
-                <div>${actionBtnHtml}</div>
-            `;
-            listContainer.appendChild(row);
-        });
-
-        // Kazanma Kontrolü
-        checkWinConditions(players);
-
-        // Toplantı / Rapor Modu Kontrolü
-        if (roomData.phase === "meeting") {
-            document.getElementById('meeting-screen').style.display = 'flex';
-            document.getElementById('meeting-desc').innerText = roomData.meetingDesc || "Bir ceset bulundu ve toplantı başladı!";
-            document.getElementById('speaker-status').innerText = `Söz Sırası: ${roomData.currentSpeakerName || 'Bekleniyor...'}`;
-            document.getElementById('meeting-timer').innerText = roomData.timer || 30;
-
-            let mActions = document.getElementById('meeting-actions');
-            mActions.innerHTML = "";
-
-            if (roomData.subPhase === "speaking") {
-                if (roomData.currentSpeakerId === myId && !isDead) {
-                    mActions.innerHTML = `<button class="btn btn-main" onclick="finishMySpeech()">KONUŞMAYI BİTİR</button>`;
-                } else {
-                    mActions.innerHTML = `<p style="color:#747d8c; text-align:center;">Sıradaki oyuncunun konuşması bekleniyor...</p>`;
-                }
-            } else if (roomData.subPhase === "voting") {
-                mActions.innerHTML = `<h3 style="color:#ffa502; text-align:center;">OYLAMA VAKTİ! Kim vampir?</h3>`;
-                Object.keys(players).forEach(id => {
-                    let p = players[id];
-                    if (p.alive) {
-                        mActions.innerHTML += `<button class="btn btn-sec" style="margin:4px 0;" onclick="votePlayer('${id}')">${p.number}. ${p.name} Oyla</button>`;
-                    }
-                });
-            }
-        } else {
-            document.getElementById('meeting-screen').style.display = 'none';
-        }
-    }
-
-    function killPlayer(targetId) {
-        roomRef.child('players/' + targetId + '/alive').set(false);
-    }
-
-    function reportBody(targetId, targetName, targetNum) {
-        let myNum = roomData.players[myId].number;
-        let desc = `${myNum}. numara ${myName}, ${targetNum}. numara ${targetName}'in cesedini buldu ve rapor etti!`;
-        
-        let pKeys = Object.keys(roomData.players).filter(id => roomData.players[id].alive);
-
-        roomRef.update({
-            phase: "meeting",
-            subPhase: "speaking",
-            meetingDesc: desc,
-            currentSpeakerId: pKeys[0],
-            currentSpeakerName: roomData.players[pKeys[0]].name,
-            speakerQueue: pKeys,
-            timer: 30
-        });
-        startMeetingTimer();
-    }
-
-    function startMeetingTimer() {
-        let t = 30;
-        let interval = setInterval(() => {
-            t--;
-            roomRef.child('timer').set(t);
-            if (t <= 0) {
-                clearInterval(interval);
-                advanceSpeakerOrVoting();
-            }
-        }, 1000);
-    }
-
-    function finishMySpeech() {
-        advanceSpeakerOrVoting();
-    }
-
-    function advanceSpeakerOrVoting() {
-        let queue = roomData.speakerQueue || [];
-        queue.shift(); // Konuşanı listeden çıkar
-
-        if (queue.length > 0) {
-            let nextId = queue[0];
-            roomRef.update({
-                speakerQueue: queue,
-                currentSpeakerId: nextId,
-                currentSpeakerName: roomData.players[nextId].name,
-                timer: 30
-            });
-        } else {
-            // Herkes konuştu, oylamaya geç
-            roomRef.update({
-                subPhase: "voting",
-                timer: 20
-            });
-        }
-    }
-
-    function votePlayer(targetId) {
-        roomRef.child('votes/' + myId).set(targetId);
-        alert("Oyunuz kaydedildi.");
-    }
-
-    function checkWinConditions(players) {
-        let vampiresAlive = 0;
-        let villagersAlive = 0;
-
-        Object.values(players).forEach(p => {
-            if (p.alive) {
-                if (p.role === "Vampir") vampiresAlive++;
-                else villagersAlive++;
-            }
-        });
-
-        if (vampiresAlive === 0) {
-            alert("Köylüler kazandı! Tüm vampirler avlandı.");
-            location.reload();
-        } else if (vampiresAlive >= villagersAlive) {
-            alert("Vampirler kazandı! Köylü üstünlüğü ele geçirdiler.");
-            location.reload();
-        }
-    }
-</script>
-</body>
 </html>
